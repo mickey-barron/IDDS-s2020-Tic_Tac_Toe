@@ -80,10 +80,10 @@ function mouseClicked(){
   if (mouseX > canvasWidth || mouseY > canvasHeight){
     return;
   } else{
-  let cellX = floor(mouseX / columnWidth);
-  let cellY = floor(mouseY / rowHeight);
-  play(cellY, cellX);
-  return;
+    let cellX = floor(mouseX / columnWidth);
+    let cellY = floor(mouseY / rowHeight);
+    play(cellY, cellX);
+    return;
   }
 }
 

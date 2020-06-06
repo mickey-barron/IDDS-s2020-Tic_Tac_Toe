@@ -42,7 +42,175 @@
  *
  * emptyCells() ➡️ function to give you what cells are empty in a given board state (or array). emptyCells(board)
  */
+const copyArray = function(array){
+  return JSON.parse(JSON.stringify(array));
+}
 
-function aiSelect() {
-  return random(emptyCells(board));
+const testBoard2d = function(board, i, j){
+    const iOffset = i * gridSize;
+    return board[iOffset + j];
+}
+
+const testBoardWin = function(board, direction) {
+  let pathResult;
+  let headerCell;
+  let comparisonCell;
+  if (direction === 'diagonal') {
+    for (let i = -1; i <= 1; i = i + 2) {
+      const yCoord = ((gridSize - 1) / 2) * (1 + i);
+      headerCell = testBoard2d(board, yCoord, 0);
+      if (headerCell !== '') {
+        pathResult = true;
+        for (let j = 1; j < gridSize; j++) {
+          const compY = yCoord + j * -i;
+          comparisonCell = testBoard2d(board, compY, j);
+          if (comparisonCell !== headerCell) {
+            pathResult = false;
+          }
+        }
+        if (pathResult === true) {
+          return headerCell;
+        }
+      }
+    }
+  } else {
+    for (let i = 0; i < gridSize; i++) {
+      if (direction === 'vertical') {
+        headerCell = testBoard2d(board, 0, i);
+      } else if (direction === 'horizontal') {
+        headerCell = testBoard2d(board, i, 0);
+      }
+      if (headerCell !== '') {
+        pathResult = true;
+        for (let j = 1; j < gridSize; j++) {
+          if (direction === 'vertical') {
+            comparisonCell = testBoard2d(board, j, i);
+          } else if (direction === 'horizontal') {
+            comparisonCell = testBoard2d(board, i, j);
+          }
+          if (comparisonCell !== headerCell) {
+            pathResult = false;
+          }
+        }
+        if (pathResult === true) {
+          return headerCell;
+        }
+      }
+    }
+  }
+  return '';
+}
+
+function testBoardWins(board) {
+  const winResults = [testBoardWin(board, 'horizontal'), testBoardWin(board, 'vertical'), testBoardWin(board, 'diagonal')];
+
+  const reducer = function (total, num) {
+    if (num === '' && total === '') {
+      return '';
+    } else if (total === '') {
+      return num;
+    } else {
+      return total;
+    }
+  };
+
+  return winResults.reduce(reducer);
+}
+
+// returns a string representing the winner, or an empty string if nobody has won
+function checkWins() {
+  const winResults = [checkWin('horizontal'), checkWin('vertical'), checkWin('diagonal')];
+
+  const reducer = function (total, num) {
+    if (num === '' && total === '') {
+      return '';
+    } else if (total === '') {
+      return num;
+    } else {
+      return total;
+    }
+  };
+
+  return winResults.reduce(reducer);
+}
+
+const boardForecast = function(board, availableCells, forecastArray, forecastIteration, player, opponent, activePlayer, upstreamCell){
+  if(availableCells.length > 0){
+    let nextIteration = forecastIteration + 1;
+    availableCells.forEach(function(trialCell){
+      print(availableCells);
+      print(activePlayer);
+      print("=====");
+      let trialAvailableCells = copyArray(availableCells);
+      let trialBoard = copyArray(board);
+      trialBoard[trialCell] = activePlayer;
+      let trialResult = testBoardWins(trialBoard);
+
+      let trialIndex;
+      let arrayIndexer = function(array, target){
+        let result = array.findIndex(function(e){
+          return (e[0] == target);
+        });
+        return result;
+      }
+      if (upstreamCell == undefined){
+        trialIndex = arrayIndexer(forecastArray, trialCell);
+      } else{
+        trialIndex = upstreamCell;
+      }
+
+      let increment = 1 / nextIteration;
+      //tempprint = trialBoard.map(function(x){ if(x==""){return "⬛️";}else{return x;}});
+      if (trialResult == player){
+        forecastArray[trialIndex][1] = forecastArray[trialIndex][1] - (increment);
+      } else if (trialResult == opponent){
+        forecastArray[trialIndex][1] = forecastArray[trialIndex][1] - (increment);
+      } else {
+        forecastArray[trialIndex][1] = forecastArray[trialIndex][1] + (increment);
+        trialAvailableCells.splice(trialAvailableCells.indexOf(trialCell), 1);
+        if (activePlayer == players[0]){
+          activePlayer = players[1];
+        } else{
+          activePlayer = players[0];
+        }
+        boardForecast(trialBoard, trialAvailableCells, forecastArray, nextIteration, player, opponent, activePlayer, trialIndex);
+      }
+    });
+  } else {
+    return forecastArray;
+  }
+  return forecastArray;
+}
+
+
+const forecastAlgorithm = function(board, availableCells, forecastArray, depth, forecastIteration){
+  let opponent;
+  if (player == players[1]){
+    opponent = players[0];
+  } else{
+    opponent = players[1];
+  }
+  forecastArray = boardForecast(board, availableCells, forecastArray, forecastIteration, player, opponent, player);
+  return forecastArray;
+}
+
+const aiSelect = function() {
+  let decision; 
+  let forecastArray = [];
+  let currentBoard = copyArray(board);
+  let currentAvailableCells = copyArray(emptyCells(currentBoard));
+
+  for(let i = 0; i < currentAvailableCells.length; i++){
+    forecastArray.push([currentAvailableCells[i], 0]);
+  }
+
+  let depth = 0;
+  forecastArray = forecastAlgorithm(currentBoard, currentAvailableCells, forecastArray, depth, 0);
+
+  print(forecastArray);
+
+  decision = forecastArray.sort(function(a ,b){
+    return a[1] - b[1];
+  })[0][0];
+  return decision;
 }
