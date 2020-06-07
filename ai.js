@@ -134,63 +134,70 @@ function checkWins() {
   return winResults.reduce(reducer);
 }
 
-const boardForecast = function(board, availableCells, forecastArray, forecastIteration, player, opponent, activePlayer, upstreamCell){
-  if(availableCells.length > 0){
+const boardForecast = function(board, availableCells, forecastArray, depth, player, opponent, activePlayer, initAvailableCellsLength, forecastIteration){
+  if (forecastIteration < depth || depth == 0){
+    if (activePlayer == undefined){
+          activePlayer = player;
+    } else{
+      if (activePlayer == players[0]){
+        activePlayer = players[1];
+      } else{
+        activePlayer = players[0];
+      }
+    }
     let nextIteration = forecastIteration + 1;
     availableCells.forEach(function(trialCell){
-      print(availableCells);
-      print(activePlayer);
-      print("=====");
       let trialAvailableCells = copyArray(availableCells);
       let trialBoard = copyArray(board);
       trialBoard[trialCell] = activePlayer;
       let trialResult = testBoardWins(trialBoard);
 
-      let trialIndex;
       let arrayIndexer = function(array, target){
         let result = array.findIndex(function(e){
           return (e[0] == target);
         });
         return result;
       }
-      if (upstreamCell == undefined){
-        trialIndex = arrayIndexer(forecastArray, trialCell);
-      } else{
-        trialIndex = upstreamCell;
-      }
 
-      let increment = 1 / nextIteration;
-      //tempprint = trialBoard.map(function(x){ if(x==""){return "⬛️";}else{return x;}});
+      let trialIndex = arrayIndexer(forecastArray, trialCell);
+
       if (trialResult == player){
-        forecastArray[trialIndex][1] = forecastArray[trialIndex][1] - (increment);
-      } else if (trialResult == opponent){
-        forecastArray[trialIndex][1] = forecastArray[trialIndex][1] - (increment);
-      } else {
-        forecastArray[trialIndex][1] = forecastArray[trialIndex][1] + (increment);
+        // if (upstreamCell != undefined){
+        //   trialIndex = arrayIndexer(forecastArray, upstreamCell);
+        // }
+        forecastArray[trialIndex][1] = forecastArray[trialIndex][1] - (1 / (forecastIteration));
+
+      } else if (trialResult == opponent) {
+        
+        forecastArray[trialIndex][1] = forecastArray[trialIndex][1] - (1 / (nextIteration**2)); 
+        
+      } else{
         trialAvailableCells.splice(trialAvailableCells.indexOf(trialCell), 1);
-        if (activePlayer == players[0]){
-          activePlayer = players[1];
-        } else{
-          activePlayer = players[0];
-        }
-        boardForecast(trialBoard, trialAvailableCells, forecastArray, nextIteration, player, opponent, activePlayer, trialIndex);
+        boardForecast(trialBoard, trialAvailableCells, forecastArray, depth, player, opponent, activePlayer, initAvailableCellsLength, nextIteration);
+
       }
     });
-  } else {
-    return forecastArray;
+
+    if(availableCells.length == initAvailableCellsLength){
+      return(forecastArray);
+    }
+  }else{
+    return(forecastArray);
   }
-  return forecastArray;
+  
 }
 
 
-const forecastAlgorithm = function(board, availableCells, forecastArray, depth, forecastIteration){
+const forecastAlgorithm = function(board, availableCells, forecastArray, depth){
   let opponent;
   if (player == players[1]){
     opponent = players[0];
   } else{
     opponent = players[1];
   }
-  forecastArray = boardForecast(board, availableCells, forecastArray, forecastIteration, player, opponent, player);
+  let initAvailableCellsLength = availableCells.length;
+  forecastArray = boardForecast(board, availableCells, forecastArray, depth, player, opponent, undefined, initAvailableCellsLength, 0);
+
   return forecastArray;
 }
 
@@ -204,8 +211,8 @@ const aiSelect = function() {
     forecastArray.push([currentAvailableCells[i], 0]);
   }
 
-  let depth = 0;
-  forecastArray = forecastAlgorithm(currentBoard, currentAvailableCells, forecastArray, depth, 0);
+  let depth = 5;
+  forecastArray = forecastAlgorithm(currentBoard, currentAvailableCells, forecastArray, depth);
 
   print(forecastArray);
 
